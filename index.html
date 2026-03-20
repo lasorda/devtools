@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>开发者工具箱</title>
+<link rel="stylesheet" href="css/style.css?v=20260320-center-middle">
+</head>
+<body>
+
+<!-- Tab Navigation Bar -->
+<div class="tab-bar">
+  <span class="app-title">🛠 开发者工具箱</span>
+  <button class="tab-btn active" data-tab="tab-json-viewer">JSON 查看器</button>
+  <button class="tab-btn" data-tab="tab-json-diff">JSON 对比</button>
+  <button class="tab-btn" data-tab="tab-base64">Base64</button>
+  <button class="tab-btn" data-tab="tab-url-codec">URL 编解码</button>
+  <button class="tab-btn" data-tab="tab-timestamp">时间戳</button>
+</div>
+
+<!-- ===== Tab 1: JSON Viewer ===== -->
+<div class="tab-content active" id="tab-json-viewer">
+  <div class="toolbar">
+    <h2>{ } JSON Viewer</h2>
+    <button id="btnFormat">格式化</button>
+    <button id="btnMinify">压缩</button>
+    <button id="btnCopy">复制结果</button>
+    <button id="btnClear">清空</button>
+    <button id="btnExpandAll">全部展开</button>
+    <button id="btnCollapseAll">全部折叠</button>
+    <label class="toggle-group">
+      解析嵌套 JSON
+      <label class="toggle">
+        <input type="checkbox" id="toggleNested">
+        <span class="slider"></span>
+      </label>
+    </label>
+  </div>
+  <div class="main">
+    <div class="panel input-panel" id="inputPanel">
+      <div class="panel-header">输入</div>
+      <textarea id="jsonInput" placeholder="在此粘贴 JSON...&#10;&#10;支持自动格式化、语法高亮、折叠&#10;开启「解析嵌套 JSON」可展开序列化的 JSON 字符串" spellcheck="false"></textarea>
+    </div>
+    <div class="resizer" id="resizer"></div>
+    <div class="panel output-panel" id="outputPanel">
+      <div class="panel-header">输出</div>
+      <div id="jsonOutput"><span class="placeholder">格式化后的 JSON 将在此显示...</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Tab 2: JSON Diff ===== -->
+<div class="tab-content" id="tab-json-diff">
+  <div class="toolbar">
+    <h2>JSON 对比</h2>
+    <button id="diffBtnSwap">交换</button>
+    <button id="diffBtnClear">清空</button>
+  </div>
+  <div class="diff-container">
+    <div class="diff-inputs">
+      <div class="panel" style="flex:1;">
+        <div class="panel-header">左侧 JSON</div>
+        <textarea class="tool-textarea" id="diffInputLeft" placeholder="在此粘贴第一个 JSON..." spellcheck="false"></textarea>
+      </div>
+      <div class="resizer" id="diffResizer"></div>
+      <div class="panel" style="flex:1;">
+        <div class="panel-header">右侧 JSON</div>
+        <textarea class="tool-textarea" id="diffInputRight" placeholder="在此粘贴第二个 JSON..." spellcheck="false"></textarea>
+      </div>
+    </div>
+    <div class="diff-output-wrap">
+      <div class="diff-stats" id="diffStats">
+        <span style="color:var(--text-muted)">在两侧输入 JSON 自动对比</span>
+      </div>
+      <div class="diff-result" id="diffResult">
+        <span class="placeholder">对比结果将在此显示...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Tab 3: Base64 ===== -->
+<div class="tab-content" id="tab-base64">
+  <div class="toolbar">
+    <h2>Base64 编解码</h2>
+    <label class="toggle-group">
+      编码
+      <label class="toggle">
+        <input type="checkbox" id="b64ToggleDecode">
+        <span class="slider"></span>
+      </label>
+      解码
+    </label>
+    <button id="b64BtnCopy">复制结果</button>
+    <button id="b64BtnClear">清空</button>
+  </div>
+  <div class="main">
+    <div class="panel input-panel" id="b64InputPanel">
+      <div class="panel-header">输入</div>
+      <textarea class="tool-textarea" id="b64Input" placeholder="输入要编码或解码的文本..." spellcheck="false"></textarea>
+    </div>
+    <div class="resizer" id="b64Resizer"></div>
+    <div class="panel output-panel">
+      <div class="panel-header">输出</div>
+      <textarea class="tool-textarea" id="b64Output" readonly placeholder="结果将在此显示..."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Tab 4: URL Encode/Decode ===== -->
+<div class="tab-content" id="tab-url-codec">
+  <div class="toolbar">
+    <h2>URL 编解码</h2>
+    <label class="toggle-group">
+      编码
+      <label class="toggle">
+        <input type="checkbox" id="urlToggleDecode">
+        <span class="slider"></span>
+      </label>
+      解码
+    </label>
+    <label class="toggle-group">
+      encodeURIComponent
+      <label class="toggle">
+        <input type="checkbox" id="urlToggleComponent" checked>
+        <span class="slider"></span>
+      </label>
+    </label>
+    <button id="urlBtnCopy">复制结果</button>
+    <button id="urlBtnClear">清空</button>
+  </div>
+  <div class="main">
+    <div class="panel input-panel" id="urlInputPanel">
+      <div class="panel-header">输入</div>
+      <textarea class="tool-textarea" id="urlInput" placeholder="输入要编码或解码的 URL / 文本..." spellcheck="false"></textarea>
+    </div>
+    <div class="resizer" id="urlResizer"></div>
+    <div class="panel output-panel">
+      <div class="panel-header">输出</div>
+      <textarea class="tool-textarea" id="urlOutput" readonly placeholder="结果将在此显示..."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Tab 5: Timestamp ===== -->
+<div class="tab-content" id="tab-timestamp">
+  <div class="toolbar">
+    <h2>时间戳转换</h2>
+    <span class="timestamp-live" id="tsLive">—</span>
+    <label class="toggle-group">
+      毫秒
+      <label class="toggle">
+        <input type="checkbox" id="tsToggleMs">
+        <span class="slider"></span>
+      </label>
+    </label>
+  </div>
+  <div class="timestamp-section">
+    <div class="tool-row">
+      <label>时间 →</label>
+      <input type="text" id="tsInputStamp" placeholder="输入 Unix 时间戳">
+      <span class="result-text" id="tsResultDate">—</span>
+    </div>
+    <div class="tool-row">
+      <label>日期 →</label>
+      <input type="text" id="tsInputDate" placeholder="输入日期，如 2024-01-01 12:00:00">
+      <span class="result-text" id="tsResultStamp">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="js/app.js"></script>
+<script src="js/json-viewer.js"></script>
+<script src="js/json-diff.js"></script>
+<script src="js/base64.js"></script>
+<script src="js/timestamp.js"></script>
+<script src="js/url-codec.js"></script>
+</body>
+</html>

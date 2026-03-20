@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>重定向</title>
+  <script>
+    // GitHub Pages 路由重定向脚本
+    // 当访问 /json-diff 等路由时，GitHub Pages 会返回 404
+    // 此脚本捕获 404 并重定向到 index.html，让前端路由处理
+
+    const path = window.location.pathname;
+    const route = path.split('/').filter(p => p.length > 0).pop();
+
+    // 有效的路由列表
+    const validRoutes = ['json-viewer', 'json-diff', 'base64', 'url-codec', 'timestamp'];
+
+    // 如果是有效的路由，重定向到首页并保留路由信息
+    if (validRoutes.includes(route)) {
+      const segments = path.split('/').filter(p => p.length > 0);
+      segments[segments.length - 1] = route;
+      const redirectPath = '/' + segments.join('/');
+      window.location.replace(redirectPath);
+    } else {
+      // 否则重定向到首页
+      window.location.replace('/');
+    }
+  </script>
+</head>
+<body>
+  正在重定向...
+</body>
+</html>

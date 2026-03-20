@@ -1,0 +1,16 @@
+# Docker 相关
+Dockerfile
+docker-compose.yml
+.dockerignore
+nginx.conf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 依赖
+node_modules/
