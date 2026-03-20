@@ -306,6 +306,7 @@ body {
   align-items: center;
   gap: 12px;
   padding: 10px 20px;
+  min-height: 53px;
   background: var(--toolbar-bg);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -625,22 +626,13 @@ body {
   margin: 6px 0;
 }
 
-#tab-timestamp .toolbar {
-  padding: 15px 30px;
-  gap: 18px;
-}
-
-#tab-timestamp .toolbar h2 {
-  font-size: 24px;
-}
 
 /* ===== Current timestamp display ===== */
 .timestamp-live {
-  font-size: 36px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
-  padding: 8px 16px;
 }
 
 .timestamp-section {
@@ -651,7 +643,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding-top: 120px;
+  padding-top: 80px;
   gap: 24px;
 }
 
