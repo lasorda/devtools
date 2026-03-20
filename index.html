@@ -4,18 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>开发者工具箱</title>
-<link rel="stylesheet" href="css/style.css?v=20260320-center-middle">
+<link rel="stylesheet" href="css/style.css?v=20260320-themes">
+<script>
+  // Apply saved theme immediately to prevent flash
+  try { var t = localStorage.getItem('devtools-theme') || 'catppuccin-latte'; document.documentElement.setAttribute('data-theme', t); } catch(e) {}
+</script>
 </head>
 <body>
 
 <!-- Tab Navigation Bar -->
 <div class="tab-bar">
-  <span class="app-title">🛠 开发者工具箱</span>
-  <button class="tab-btn active" data-tab="tab-json-viewer">JSON 查看器</button>
-  <button class="tab-btn" data-tab="tab-json-diff">JSON 对比</button>
-  <button class="tab-btn" data-tab="tab-base64">Base64</button>
-  <button class="tab-btn" data-tab="tab-url-codec">URL 编解码</button>
-  <button class="tab-btn" data-tab="tab-timestamp">时间戳</button>
+  <div class="tab-bar-tabs">
+    <span class="app-title">🛠 开发者工具箱</span>
+    <button class="tab-btn active" data-tab="tab-json-viewer">JSON 查看器</button>
+    <button class="tab-btn" data-tab="tab-json-diff">JSON 对比</button>
+    <button class="tab-btn" data-tab="tab-base64">Base64</button>
+    <button class="tab-btn" data-tab="tab-url-codec">URL 编解码</button>
+    <button class="tab-btn" data-tab="tab-timestamp">时间戳</button>
+  </div>
+  <!-- Theme Switcher -->
+  <div class="theme-switcher" id="themeSwitcher"></div>
 </div>
 
 <!-- ===== Tab 1: JSON Viewer ===== -->
@@ -170,7 +178,8 @@
 </div>
 
 <!-- Scripts -->
-<script src="js/app.js"></script>
+<script src="js/theme.js?v=20260320-dots"></script>
+<script src="js/app.js?v=20260320"></script>
 <script src="js/json-viewer.js"></script>
 <script src="js/json-diff.js"></script>
 <script src="js/base64.js"></script>
