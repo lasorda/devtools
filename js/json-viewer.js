@@ -5,6 +5,114 @@
   var esc = DevTools.esc;
   var debounce = DevTools.debounce;
 
+  // BigInt marker: large integers (> MAX_SAFE_INTEGER) are preserved as strings
+  // with this prefix so we can display them correctly without precision loss.
+  // In raw JSON text we use the escaped form \\u0000BIGINT: so JSON.parse accepts it.
+  // After parsing, the JS string contains the actual \x00 char.
+  var BIGINT_PREFIX = '\x00BIGINT:';
+  var BIGINT_PREFIX_JSON = '\\u0000BIGINT:';
+
+  // Custom JSON parser that preserves large integers.
+  // Integers exceeding Number.MAX_SAFE_INTEGER are kept as strings with BIGINT_PREFIX.
+  function parseJson(raw) {
+    return JSON.parse(raw, function(key, value) {
+      if (typeof value === 'string' && value.startsWith(BIGINT_PREFIX)) {
+        return value;
+      }
+      return value;
+    });
+  }
+
+  // Pre-process raw JSON text to wrap large integers in quoted strings with a marker.
+  // This runs before JSON.parse to avoid JavaScript Number precision loss.
+  function preserveBigInts(raw) {
+    // Match JSON number literals (integer or float), only outside of strings.
+    // We use a state machine approach: track whether we're inside a string.
+    var result = '';
+    var inString = false;
+    var stringChar = '';
+    var i = 0;
+    while (i < raw.length) {
+      var ch = raw[i];
+      if (inString) {
+        result += ch;
+        if (ch === '\\') {
+          i++;
+          if (i < raw.length) result += raw[i];
+        } else if (ch === stringChar) {
+          inString = false;
+        }
+        i++;
+      } else {
+        if (ch === '"' || ch === "'") {
+          // Single quotes aren't valid JSON strings, but handle gracefully
+          inString = true;
+          stringChar = ch;
+          result += ch;
+          i++;
+        } else if (ch === '-' || (ch >= '0' && ch <= '9')) {
+          // Possible number literal
+          var numStart = i;
+          if (ch === '-') { i++; }
+          // Parse digits
+          var hasDigits = false;
+          while (i < raw.length && raw[i] >= '0' && raw[i] <= '9') {
+            hasDigits = true;
+            i++;
+          }
+          // Check for decimal point or exponent — if present, it's a float, skip
+          var isFloat = false;
+          if (i < raw.length && raw[i] === '.') {
+            isFloat = true;
+            i++;
+            while (i < raw.length && raw[i] >= '0' && raw[i] <= '9') i++;
+          }
+          if (i < raw.length && (raw[i] === 'e' || raw[i] === 'E')) {
+            isFloat = true;
+            i++;
+            if (i < raw.length && (raw[i] === '+' || raw[i] === '-')) i++;
+            while (i < raw.length && raw[i] >= '0' && raw[i] <= '9') i++;
+          }
+          var numStr = raw.substring(numStart, i);
+          if (!hasDigits) {
+            // Not actually a number (just a minus sign), output as-is
+            result += numStr;
+          } else if (isFloat) {
+            // Floats don't have BigInt precision issues in typical usage
+            result += numStr;
+          } else {
+            // Integer — check if it exceeds MAX_SAFE_INTEGER
+            var absStr = numStr.startsWith('-') ? numStr.substring(1) : numStr;
+            if (absStr.length > 16 || (absStr.length === 16 && absStr > '9007199254740991')) {
+              // Large integer — wrap in quoted string with marker
+              result += '"' + BIGINT_PREFIX_JSON + numStr + '"';
+            } else {
+              result += numStr;
+            }
+          }
+        } else {
+          result += ch;
+          i++;
+        }
+      }
+    }
+    return result;
+  }
+
+  function jsonParsePreserveBigInt(raw) {
+    return parseJson(preserveBigInts(raw));
+  }
+
+  // Stringify with BigInt support: BIGINT_PREFIX-marked strings are output as bare numbers.
+  function bigIntStringify(obj, indent) {
+    return JSON.stringify(obj, function(key, value) {
+      if (typeof value === 'string' && value.startsWith(BIGINT_PREFIX)) {
+        return value.substring(BIGINT_PREFIX.length);
+      }
+      return value;
+    }, indent);
+  }
+
   var input = document.getElementById('jsonInput');
   var output = document.getElementById('jsonOutput');
   var btnFormat = document.getElementById('btnFormat');
@@ -31,7 +139,7 @@
         if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
             (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
           try {
-            val = expandNestedJson(JSON.parse(trimmed));
+            val = expandNestedJson(jsonParsePreserveBigInt(trimmed));
           } catch (e) { /* keep original */ }
         }
       } else if (typeof val === 'object' && val !== null) {
@@ -59,6 +167,9 @@
       return '<span class="json-number">' + data + '</span>';
     }
     if (typeof data === 'string') {
+      if (data.startsWith(BIGINT_PREFIX)) {
+        return '<span class="json-number">' + esc(data.substring(BIGINT_PREFIX.length)) + '</span>';
+      }
       return '<span class="json-string">' + esc(JSON.stringify(data)) + '</span>';
     }
 
@@ -183,12 +294,12 @@
     }
 
     try {
-      var obj = JSON.parse(raw);
+      var obj = jsonParsePreserveBigInt(raw);
       if (toggleNested.checked) {
         obj = expandNestedJson(obj);
       }
       if (options.minify) {
-        output.innerHTML = '<div class="json-tree">' + esc(JSON.stringify(obj)) + '</div>';
+        output.innerHTML = '<div class="json-tree">' + esc(bigIntStringify(obj)) + '</div>';
       } else {
         output.innerHTML = '<div class="json-tree">' + buildJsonTree(obj, 0) + '\n</div>';
       }
@@ -243,9 +354,9 @@
     var raw = input.value.trim();
     if (!raw) return;
     try {
-      var obj = JSON.parse(raw);
+      var obj = jsonParsePreserveBigInt(raw);
       if (toggleNested.checked) obj = expandNestedJson(obj);
-      var text = JSON.stringify(obj, null, 2);
+      var text = bigIntStringify(obj, 2);
       DevTools.copyToClipboard(text, btnCopy);
     } catch(e) {}
   });

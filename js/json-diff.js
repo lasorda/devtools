@@ -5,6 +5,92 @@
   var esc = DevTools.esc;
   var debounce = DevTools.debounce;
 
+  // BigInt marker: must match the one in json-viewer.js
+  var BIGINT_PREFIX = '\x00BIGINT:';
+  var BIGINT_PREFIX_JSON = '\\u0000BIGINT:';
+
+  // Custom JSON parser that preserves large integers (same logic as json-viewer.js)
+  function preserveBigInts(raw) {
+    var result = '';
+    var inString = false;
+    var stringChar = '';
+    var i = 0;
+    while (i < raw.length) {
+      var ch = raw[i];
+      if (inString) {
+        result += ch;
+        if (ch === '\\') {
+          i++;
+          if (i < raw.length) result += raw[i];
+        } else if (ch === stringChar) {
+          inString = false;
+        }
+        i++;
+      } else {
+        if (ch === '"' || ch === "'") {
+          inString = true;
+          stringChar = ch;
+          result += ch;
+          i++;
+        } else if (ch === '-' || (ch >= '0' && ch <= '9')) {
+          var numStart = i;
+          if (ch === '-') { i++; }
+          var hasDigits = false;
+          while (i < raw.length && raw[i] >= '0' && raw[i] <= '9') {
+            hasDigits = true;
+            i++;
+          }
+          var isFloat = false;
+          if (i < raw.length && raw[i] === '.') {
+            isFloat = true;
+            i++;
+            while (i < raw.length && raw[i] >= '0' && raw[i] <= '9') i++;
+          }
+          if (i < raw.length && (raw[i] === 'e' || raw[i] === 'E')) {
+            isFloat = true;
+            i++;
+            if (i < raw.length && (raw[i] === '+' || raw[i] === '-')) i++;
+            while (i < raw.length && raw[i] >= '0' && raw[i] <= '9') i++;
+          }
+          var numStr = raw.substring(numStart, i);
+          if (!hasDigits) {
+            result += numStr;
+          } else if (isFloat) {
+            result += numStr;
+          } else {
+            var absStr = numStr.startsWith('-') ? numStr.substring(1) : numStr;
+            if (absStr.length > 16 || (absStr.length === 16 && absStr > '9007199254740991')) {
+              result += '"' + BIGINT_PREFIX_JSON + numStr + '"';
+            } else {
+              result += numStr;
+            }
+          }
+        } else {
+          result += ch;
+          i++;
+        }
+      }
+    }
+    return result;
+  }
+
+  function jsonParsePreserveBigInt(raw) {
+    return JSON.parse(preserveBigInts(raw));
+  }
+
+  // Stringify with BigInt support for display
+  function bigIntStringify(val) {
+    if (typeof val === 'string' && val.startsWith(BIGINT_PREFIX)) {
+      return val.substring(BIGINT_PREFIX.length);
+    }
+    return JSON.stringify(val, function(key, value) {
+      if (typeof value === 'string' && value.startsWith(BIGINT_PREFIX)) {
+        return value.substring(BIGINT_PREFIX.length);
+      }
+      return value;
+    });
+  }
+
   var inputLeft = document.getElementById('diffInputLeft');
   var inputRight = document.getElementById('diffInputRight');
   var btnSwap = document.getElementById('diffBtnSwap');
@@ -23,13 +109,20 @@
     var typeA = a === null ? 'null' : Array.isArray(a) ? 'array' : typeof a;
     var typeB = b === null ? 'null' : Array.isArray(b) ? 'array' : typeof b;
 
+    // BigInt-marked strings should be treated as numbers for type comparison
+    if (typeof a === 'string' && a.startsWith(BIGINT_PREFIX)) typeA = 'number';
+    if (typeof b === 'string' && b.startsWith(BIGINT_PREFIX)) typeB = 'number';
+
     if (typeA !== typeB) {
       diffs.push({ path: path, type: 'modified', oldVal: a, newVal: b });
       return diffs;
     }
 
     if (typeA !== 'object' && typeA !== 'array') {
-      if (a !== b) {
+      // Normalize BigInt-marked strings to their numeric string for comparison
+      var aNorm = (typeof a === 'string' && a.startsWith(BIGINT_PREFIX)) ? a.substring(BIGINT_PREFIX.length) : a;
+      var bNorm = (typeof b === 'string' && b.startsWith(BIGINT_PREFIX)) ? b.substring(BIGINT_PREFIX.length) : b;
+      if (aNorm !== bNorm) {
         diffs.push({ path: path, type: 'modified', oldVal: a, newVal: b });
       }
       return diffs;
@@ -76,6 +169,9 @@
   }
 
   function truncateVal(val) {
+    if (typeof val === 'string' && val.startsWith(BIGINT_PREFIX)) {
+      return val.substring(BIGINT_PREFIX.length);
+    }
     var s = JSON.stringify(val);
     if (s && s.length > 120) return s.substring(0, 120) + '…';
     return s;
@@ -142,14 +238,14 @@
 
     var objLeft, objRight;
     try {
-      objLeft = JSON.parse(rawLeft);
+      objLeft = jsonParsePreserveBigInt(rawLeft);
     } catch (e) {
       statsEl.innerHTML = '<span style="color:var(--error)">左侧 JSON 解析错误: ' + esc(e.message) + '</span>';
       resultEl.innerHTML = '';
       return;
     }
     try {
-      objRight = JSON.parse(rawRight);
+      objRight = jsonParsePreserveBigInt(rawRight);
     } catch (e) {
       statsEl.innerHTML = '<span style="color:var(--error)">右侧 JSON 解析错误: ' + esc(e.message) + '</span>';
       resultEl.innerHTML = '';
