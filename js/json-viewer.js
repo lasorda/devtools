@@ -100,7 +100,41 @@
   }
 
   function jsonParsePreserveBigInt(raw) {
-    return parseJson(preserveBigInts(raw));
+    // After preserveBigInts, any BIGINT_PREFIX inside string values contains \x00,
+    // which JSON.parse rejects. Escape them back to \u0000 inside string literals.
+    var preprocessed = preserveBigInts(raw);
+    // Re-scan to escape control chars inside string values that were introduced
+    // by a previous JSON.parse round-trip (nested JSON case).
+    var safe = '';
+    var inStr = false;
+    var strCh = '';
+    for (var si = 0; si < preprocessed.length; si++) {
+      var sc = preprocessed[si];
+      if (inStr) {
+        if (sc === '\\') {
+          safe += sc;
+          si++;
+          if (si < preprocessed.length) safe += preprocessed[si];
+        } else if (sc === strCh) {
+          inStr = false;
+          safe += sc;
+        } else if (sc === '\x00') {
+          // Control character from a previous parse — re-escape for JSON
+          safe += '\\u0000';
+        } else {
+          safe += sc;
+        }
+      } else {
+        if (sc === '"') {
+          inStr = true;
+          strCh = sc;
+          safe += sc;
+        } else {
+          safe += sc;
+        }
+      }
+    }
+    return parseJson(safe);
   }
 
   // Stringify with BigInt support: BIGINT_PREFIX-marked strings are output as bare numbers.
